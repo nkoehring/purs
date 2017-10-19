@@ -1,7 +1,7 @@
 use std::env;
 use ansi_term::Colour::{Cyan, Blue, Red};
 use ansi_term::ANSIStrings;
-use git2::{self, Repository, StatusOptions};
+use git2::{Repository, StatusOptions};
 use regex::Regex;
 use clap::{ArgMatches, App, SubCommand};
 
@@ -32,29 +32,8 @@ fn repo_status(r: &Repository) -> String {
   opts.include_untracked(true);
   let head = r.head().unwrap();
   let shorthand = Cyan.paint(head.shorthand().unwrap().to_string());
-  let statuses = r.statuses(Some(&mut opts)).unwrap();
+  let is_dirty = r.statuses(Some(&mut opts)).unwrap().len() > 0;
 
-  let mut is_dirty = false;
-
-  for entry in statuses.iter().filter(
-    |e| e.status() != git2::STATUS_CURRENT,
-  ) {
-    is_dirty = match entry.status() {
-      s if s.contains(git2::STATUS_INDEX_NEW) => true,
-      s if s.contains(git2::STATUS_INDEX_MODIFIED) => true,
-      s if s.contains(git2::STATUS_INDEX_DELETED) => true,
-      s if s.contains(git2::STATUS_INDEX_RENAMED) => true,
-      s if s.contains(git2::STATUS_INDEX_TYPECHANGE) => true,
-      s if s.contains(git2::STATUS_WT_NEW) => true,
-      s if s.contains(git2::STATUS_WT_MODIFIED) => true,
-      s if s.contains(git2::STATUS_WT_DELETED) => true,
-      s if s.contains(git2::STATUS_WT_RENAMED) => true,
-      s if s.contains(git2::STATUS_WT_TYPECHANGE) => true,
-      _ => false,
-    };
-
-    if is_dirty { break }
-  }
   let mut out = vec![shorthand];
   if is_dirty {
     out.push(Red.bold().paint("*"));
